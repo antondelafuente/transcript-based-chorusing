@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ASSEMBLYAI_API_KEY = 'adcb161c61a54294b255931202f616ca'
+const ASSEMBLYAI_API_KEY = process.env.ASSEMBLYAI_API_KEY
 const ASSEMBLYAI_UPLOAD_URL = 'https://api.assemblyai.com/v2/upload'
 const ASSEMBLYAI_TRANSCRIPT_URL = 'https://api.assemblyai.com/v2/transcript'
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if API key is configured
+    if (!ASSEMBLYAI_API_KEY) {
+      return NextResponse.json({ error: 'AssemblyAI API key not configured' }, { status: 500 })
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
     
