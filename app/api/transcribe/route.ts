@@ -6,6 +6,14 @@ const ASSEMBLYAI_TRANSCRIPT_URL = 'https://api.assemblyai.com/v2/transcript'
 
 export async function POST(request: NextRequest) {
   try {
+    // Debug logging for Railway
+    console.log('=== DEBUG INFO ===')
+    console.log('NODE_ENV:', process.env.NODE_ENV)
+    console.log('Available env vars:', Object.keys(process.env).filter(key => key.includes('ASSEMBLY')))
+    console.log('ASSEMBLYAI_API_KEY exists:', !!process.env.ASSEMBLYAI_API_KEY)
+    console.log('ASSEMBLYAI_API_KEY length:', process.env.ASSEMBLYAI_API_KEY?.length || 0)
+    console.log('==================')
+
     // Check if API key is configured
     if (!ASSEMBLYAI_API_KEY) {
       return NextResponse.json({ error: 'AssemblyAI API key not configured' }, { status: 500 })
