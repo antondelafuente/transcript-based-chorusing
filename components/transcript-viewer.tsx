@@ -263,7 +263,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       // Check if we've passed the current selection end (in case it was shortened)
       const currentSelection = selectionRef.current
       if (currentSelection && currentSec >= msToSeconds(currentSelection.end)) {
-        console.log('[RAF] Reached adjusted end time, stopping early')
         if (sourceRef.current) {
           try {
             sourceRef.current.stop()
@@ -280,7 +279,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
   }
 
   const stopCurrentSource = () => {
-    console.log('[stopCurrentSource] called, current state:', { isPlaying, isPausing, sourceRef: !!sourceRef.current })
     cancelRaf()
     
     // Clear any pending timeouts
@@ -292,21 +290,18 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
     if (sourceRef.current) {
       try {
         sourceRef.current.stop()
-        console.log('[stopCurrentSource] source.stop() called successfully')
       } catch {}
       sourceRef.current.disconnect()
       sourceRef.current = null
     }
     setIsPlaying(false)
     setIsPausing(false)
-    console.log('[stopCurrentSource] complete')
   }
 
   // Initialize or get the AudioContext lazily
   const getOrCreateAudioContext = async (): Promise<AudioContext | null> => {
     try {
       if (!audioCtxRef.current) {
-        console.log('[getOrCreateAudioContext] Creating new AudioContext')
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
         if (!AudioContextClass) {
           throw new Error("Web Audio API is not supported in this browser")
@@ -316,7 +311,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       
       // Always try to resume in case it's suspended
       if (audioCtxRef.current.state === "suspended") {
-        console.log('[getOrCreateAudioContext] Resuming suspended context')
         await audioCtxRef.current.resume()
       }
       
@@ -340,8 +334,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
   }
 
   const togglePlayPause = async () => {
-    console.log('[togglePlayPause] called, current state:', { isPlaying, isPausing })
-    
     // Clear any existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -349,12 +341,9 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
     }
 
     if (isPlaying || isPausing) {
-      console.log('[togglePlayPause] stopping playback')
       // stop playback
       stopCurrentSource()
     } else {
-      console.log('[togglePlayPause] starting playback')
-      
       // Clear any previous errors
       setAudioError(null)
       
@@ -370,7 +359,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
         
         // Decode audio if not already decoded
         if (!audioBufferRef.current && audioArrayBuffer) {
-          console.log('[togglePlayPause] Decoding audio buffer')
           setIsDecoding(true)
           const decodedBuffer = await decodeAudioBuffer(ctx, audioArrayBuffer)
           setIsDecoding(false)
@@ -394,7 +382,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
 
         const offset = msToSeconds(selection.start)
         const durationSec = msToSeconds(selection.end - selection.start)
-        console.log('[togglePlayPause] playing from', offset, 'for', durationSec, 'seconds')
 
         source.start(0, offset, durationSec)
         startTimestampRef.current = ctx.currentTime
@@ -402,7 +389,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
         sourceDurationRef.current = durationSec
         const thisSource = source // capture reference to this specific source
         source.onended = () => {
-          console.log('[togglePlayPause] source ended naturally, is current?', sourceRef.current === thisSource)
           if (sourceRef.current === thisSource) {
             handleEnded() // only handle if this is still the current source
           }
@@ -424,7 +410,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
 
   // Add fine-tune adjustment functions
   const adjustStartTime = (delta: number) => {
-    console.log('[adjustStartTime] called with delta:', delta, 'isPlaying:', isPlaying)
     if (!selection) return
 
     const currentStartSeconds = msToSeconds(selection.start)
@@ -435,7 +420,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       ...selection,
       start: secondsToMs(newStartTime),
     }
-    console.log('[adjustStartTime] new selection:', newSelection)
     setSelection(newSelection)
 
     // Don't restart playback - let current playback continue
@@ -443,7 +427,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
   }
 
   const adjustEndTime = (delta: number) => {
-    console.log('[adjustEndTime] called with delta:', delta, 'isPlaying:', isPlaying)
     if (!selection) return
 
     const currentStartSeconds = msToSeconds(selection.start)
@@ -454,7 +437,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       ...selection,
       end: secondsToMs(newEndTime),
     }
-    console.log('[adjustEndTime] new selection:', newSelection)
     setSelection(newSelection)
 
     // Don't restart playback - let current playback continue
@@ -597,12 +579,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       stopCurrentSource()
       setIsPlaying(false)
     }
-
-    // Show a subtle toast
-    toast({
-      title: "Segment Selected",
-      description: `${msToSeconds(startTime).toFixed(1)}s - ${msToSeconds(endTime).toFixed(1)}s`,
-    })
   }
 
   const handleDownload = async () => {
@@ -888,8 +864,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
   // Improved cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log('[Cleanup] Component unmounting, cleaning up audio resources')
-      
       // Stop any playing audio
       stopCurrentSource()
       
@@ -906,7 +880,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       if (audioCtxRef.current) {
         try {
           audioCtxRef.current.close()
-          console.log('[Cleanup] AudioContext closed')
         } catch (error) {
           console.error('[Cleanup] Error closing AudioContext:', error)
         }
@@ -921,7 +894,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
 
   const handleEnded = () => {
     const currentSelection = selectionRef.current // get fresh selection from ref
-    console.log('[handleEnded] called, isLooping:', isLooping, 'currentSelection:', currentSelection)
     cancelRaf()
     
     // Check if this source ended at a point before the current selection end
@@ -932,7 +904,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
     sourceRef.current = null // source already ended
     
     if (currentSelection && sourceEndedAt < currentSelectionEnd - 0.01) { // small tolerance for float comparison
-      console.log('[handleEnded] Endpoint was extended, playing extension from', sourceEndedAt, 'to', currentSelectionEnd)
       // Play the extended portion
       if (audioCtxRef.current && audioBufferRef.current) {
         const ctx = audioCtxRef.current
@@ -950,7 +921,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
         
         const thisSource = source
         source.onended = () => {
-          console.log('[handleEnded extension] source ended naturally, is current?', sourceRef.current === thisSource)
           if (sourceRef.current === thisSource) {
             handleEnded() // This will now trigger the normal loop
           }
@@ -964,10 +934,8 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
     }
     
     if (currentSelection && isLooping) {
-      console.log('[handleEnded] setting up loop restart')
       setIsPausing(true)
       timeoutRef.current = setTimeout(() => {
-        console.log('[handleEnded] loop restart timeout fired')
         setIsPausing(false)
         // restart playback from selection start - don't use togglePlayPause as state might be stale
         if (currentSelection && audioCtxRef.current && audioBufferRef.current) {
@@ -975,15 +943,12 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
         }
       }, loopPauseDuration)
     } else {
-      console.log('[handleEnded] not looping, stopping')
       setIsPlaying(false)
       setIsPausing(false)
     }
   }
 
   const playSelection = async (sel: { start: number; end: number; text: string }) => {
-    console.log('[playSelection] called with selection:', sel)
-    
     stopCurrentSource()
     setAudioError(null)
     
@@ -1021,7 +986,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
 
       const offset = msToSeconds(sel.start)
       const durationSec = msToSeconds(sel.end - sel.start)
-      console.log('[playSelection] playing from', offset, 'for', durationSec, 'seconds')
 
       source.start(0, offset, durationSec)
       startTimestampRef.current = ctx.currentTime
@@ -1029,7 +993,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       sourceDurationRef.current = durationSec
       const thisSource = source
       source.onended = () => {
-        console.log('[playSelection] source ended naturally, is current?', sourceRef.current === thisSource)
         if (sourceRef.current === thisSource) {
           handleEnded()
         }
@@ -1038,8 +1001,6 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       sourceRef.current = source
       setIsPlaying(true)
       startRaf()
-      
-      console.log('[playSelection] complete')
     } catch (error) {
       handlePlayError(error)
     }

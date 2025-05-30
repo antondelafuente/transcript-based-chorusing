@@ -17,8 +17,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   
   // Demo data URLs
-  const demoAudioUrl = "/14 Minutes of Nate Bargatze  Netflix Is a Joke.mp3"
-  const demoTranscriptUrl = "/14 Minutes of Nate Bargatze  Netflix Is a Joke_transcript.json"
+  const demoAudioUrl = "/demo-audio.m4a"
+  const demoTranscriptUrl = "/demo-transcript.json"
   
   const [demoTranscriptData, setDemoTranscriptData] = useState<any>(null)
   const [isDemoLoading, setIsDemoLoading] = useState(true)
@@ -136,7 +136,7 @@ export default function Home() {
           )}
           {!isUsingUploadedData && (
             <p className="text-sm text-gray-600 mt-1">
-              Demo: 14 Minutes of Nate Bargatze
+              Demo: Death Note Audio Sample
             </p>
           )}
         </div>
