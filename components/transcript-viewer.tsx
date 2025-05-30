@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Play, Pause, Download, Minus, Plus } from "lucide-react"
+import { Play, Pause, Download, Minus, Plus, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 // Define the transcript data structure to match AssemblyAI JSON format
 interface Word {
@@ -43,6 +44,9 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
   const [audioLoaded, setAudioLoaded] = useState(false)
   const [currentWordIndex, setCurrentWordIndex] = useState<number | null>(null)
   const [isPausing, setIsPausing] = useState(false)
+  const [audioError, setAudioError] = useState<string | null>(null)
+  const [audioArrayBuffer, setAudioArrayBuffer] = useState<ArrayBuffer | null>(null)
+  const [isDecoding, setIsDecoding] = useState(false)
 
   // Loop pause duration in milliseconds
   const loopPauseDuration = 200
@@ -185,6 +189,7 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
       }
     }
   }, [])
@@ -224,9 +229,12 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
 
   const handlePlayError = (error: any) => {
     console.error("Play error:", error)
+    const errorMessage = error?.message || "Unable to play audio"
+    setAudioError(errorMessage)
+    setIsDecoding(false)
     toast({
       title: "Playback Error",
-      description: "Unable to play audio. This might be due to browser restrictions.",
+      description: errorMessage,
       variant: "destructive",
     })
     setIsPlaying(false)
@@ -274,6 +282,13 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
   const stopCurrentSource = () => {
     console.log('[stopCurrentSource] called, current state:', { isPlaying, isPausing, sourceRef: !!sourceRef.current })
     cancelRaf()
+    
+    // Clear any pending timeouts
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    
     if (sourceRef.current) {
       try {
         sourceRef.current.stop()
@@ -287,10 +302,46 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
     console.log('[stopCurrentSource] complete')
   }
 
-  const togglePlayPause = () => {
-    console.log('[togglePlayPause] called, current state:', { isPlaying, isPausing })
-    if (!audioCtxRef.current || !audioBufferRef.current || !selection) return
+  // Initialize or get the AudioContext lazily
+  const getOrCreateAudioContext = async (): Promise<AudioContext | null> => {
+    try {
+      if (!audioCtxRef.current) {
+        console.log('[getOrCreateAudioContext] Creating new AudioContext')
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        if (!AudioContextClass) {
+          throw new Error("Web Audio API is not supported in this browser")
+        }
+        audioCtxRef.current = new AudioContextClass()
+      }
+      
+      // Always try to resume in case it's suspended
+      if (audioCtxRef.current.state === "suspended") {
+        console.log('[getOrCreateAudioContext] Resuming suspended context')
+        await audioCtxRef.current.resume()
+      }
+      
+      return audioCtxRef.current
+    } catch (error) {
+      console.error('[getOrCreateAudioContext] Error:', error)
+      handlePlayError(error)
+      return null
+    }
+  }
 
+  // Decode audio buffer when context is available
+  const decodeAudioBuffer = async (ctx: AudioContext, arrayBuffer: ArrayBuffer): Promise<AudioBuffer | null> => {
+    try {
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0)) // Create a copy
+      return audioBuffer
+    } catch (error) {
+      console.error('[decodeAudioBuffer] Error:', error)
+      throw new Error("Failed to decode audio. The file may be corrupted or in an unsupported format.")
+    }
+  }
+
+  const togglePlayPause = async () => {
+    console.log('[togglePlayPause] called, current state:', { isPlaying, isPausing })
+    
     // Clear any existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -303,35 +354,66 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       stopCurrentSource()
     } else {
       console.log('[togglePlayPause] starting playback')
-      const ctx = audioCtxRef.current
-      if (ctx.state === "suspended") {
-        ctx.resume().catch(() => {})
+      
+      // Clear any previous errors
+      setAudioError(null)
+      
+      if (!selection || !audioArrayBuffer) {
+        handlePlayError(new Error("No audio data or selection available"))
+        return
       }
-
-      const source = ctx.createBufferSource()
-      source.buffer = audioBufferRef.current
-      source.playbackRate.value = 1
-      source.connect(ctx.destination)
-
-      const offset = msToSeconds(selection.start)
-      const durationSec = msToSeconds(selection.end - selection.start)
-      console.log('[togglePlayPause] playing from', offset, 'for', durationSec, 'seconds')
-
-      source.start(0, offset, durationSec)
-      startTimestampRef.current = ctx.currentTime
-      selectionOffsetRef.current = offset
-      sourceDurationRef.current = durationSec
-      const thisSource = source // capture reference to this specific source
-      source.onended = () => {
-        console.log('[togglePlayPause] source ended naturally, is current?', sourceRef.current === thisSource)
-        if (sourceRef.current === thisSource) {
-          handleEnded() // only handle if this is still the current source
+      
+      try {
+        // Get or create AudioContext (lazy initialization)
+        const ctx = await getOrCreateAudioContext()
+        if (!ctx) return
+        
+        // Decode audio if not already decoded
+        if (!audioBufferRef.current && audioArrayBuffer) {
+          console.log('[togglePlayPause] Decoding audio buffer')
+          setIsDecoding(true)
+          const decodedBuffer = await decodeAudioBuffer(ctx, audioArrayBuffer)
+          setIsDecoding(false)
+          if (!decodedBuffer) {
+            handlePlayError(new Error("Failed to decode audio"))
+            return
+          }
+          audioBufferRef.current = decodedBuffer
+          setDuration(decodedBuffer.duration)
         }
-      }
+        
+        if (!audioBufferRef.current) {
+          handlePlayError(new Error("No audio buffer available"))
+          return
+        }
 
-      sourceRef.current = source
-      setIsPlaying(true)
-      startRaf()
+        const source = ctx.createBufferSource()
+        source.buffer = audioBufferRef.current
+        source.playbackRate.value = 1
+        source.connect(ctx.destination)
+
+        const offset = msToSeconds(selection.start)
+        const durationSec = msToSeconds(selection.end - selection.start)
+        console.log('[togglePlayPause] playing from', offset, 'for', durationSec, 'seconds')
+
+        source.start(0, offset, durationSec)
+        startTimestampRef.current = ctx.currentTime
+        selectionOffsetRef.current = offset
+        sourceDurationRef.current = durationSec
+        const thisSource = source // capture reference to this specific source
+        source.onended = () => {
+          console.log('[togglePlayPause] source ended naturally, is current?', sourceRef.current === thisSource)
+          if (sourceRef.current === thisSource) {
+            handleEnded() // only handle if this is still the current source
+          }
+        }
+
+        sourceRef.current = source
+        setIsPlaying(true)
+        startRaf()
+      } catch (error) {
+        handlePlayError(error)
+      }
     }
   }
 
@@ -680,22 +762,57 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       return <div className="text-center text-gray-500 py-8">No transcript data available</div>
     }
 
-    // Group words by speaker
+    // Configuration
+    const PAUSE_THRESHOLD = 2000 // ms for natural paragraph break
+    const SMALL_PAUSE_THRESHOLD = 200 // ms for emergency break when paragraph is long
+    const MAX_WORDS_PER_PARAGRAPH = 150 // safety limit
+
+    // Group words by speaker and pauses
     const result = []
     let currentSpeaker = null
     let currentGroup = []
     let wordIndex = 0
+    let paragraphWordCount = 0
 
-    for (const word of transcriptData.words) {
-      // If this is a new speaker, start a new paragraph
+    for (let i = 0; i < transcriptData.words.length; i++) {
+      const word = transcriptData.words[i]
+      const previousWord = i > 0 ? transcriptData.words[i - 1] : null
+      
+      // Calculate pause duration if not the first word
+      const pauseDuration = previousWord ? word.start - previousWord.end : 0
+      
+      // Determine if we should start a new paragraph
+      let shouldBreak = false
+      
+      // Break on speaker change
       if (word.speaker !== currentSpeaker && currentGroup.length > 0) {
-        // Add the current group to the result
+        shouldBreak = true
+      }
+      
+      // Break on natural pause
+      if (pauseDuration >= PAUSE_THRESHOLD) {
+        shouldBreak = true
+      }
+      
+      // Safety: break on smaller pause if paragraph is getting too long
+      if (paragraphWordCount >= MAX_WORDS_PER_PARAGRAPH && pauseDuration >= SMALL_PAUSE_THRESHOLD) {
+        shouldBreak = true
+      }
+      
+      // Emergency: force break if we hit the absolute word limit
+      if (paragraphWordCount >= MAX_WORDS_PER_PARAGRAPH && !shouldBreak) {
+        shouldBreak = true
+      }
+
+      // Create new paragraph if needed
+      if (shouldBreak && currentGroup.length > 0) {
         result.push(
           <p key={`speaker-${currentSpeaker}-${wordIndex - currentGroup.length}`} className="mb-5">
             {currentGroup}
           </p>,
         )
         currentGroup = []
+        paragraphWordCount = 0
       }
 
       // Add the current word to the group
@@ -717,6 +834,7 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
 
       currentSpeaker = word.speaker
       wordIndex++
+      paragraphWordCount++
     }
 
     // Add the last group
@@ -734,37 +852,72 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
   // Load and decode the audio file using Web Audio API
   useEffect(() => {
     let isMounted = true
-    const init = async () => {
+    const loadAudio = async () => {
       try {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-        audioCtxRef.current = ctx
-
+        setAudioError(null)
         const response = await fetch(audioUrl, { mode: "cors" })
+        if (!response.ok) {
+          throw new Error(`Failed to load audio: ${response.status} ${response.statusText}`)
+        }
         const arrayBuffer = await response.arrayBuffer()
-        const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
         if (!isMounted) return
-        audioBufferRef.current = audioBuffer
-        setDuration(audioBuffer.duration)
+        
+        // Store the array buffer for later decoding
+        setAudioArrayBuffer(arrayBuffer)
         setAudioLoaded(true)
+        
+        // Don't create AudioContext here - wait for user interaction
       } catch (err) {
         console.error("Audio load error", err)
+        if (!isMounted) return
+        const errorMessage = err instanceof Error ? err.message : "Failed to load audio file"
+        setAudioError(errorMessage)
         toast({
           title: "Audio Error",
-          description: "Failed to load audio",
+          description: errorMessage,
           variant: "destructive",
         })
       }
     }
-    init()
+    loadAudio()
     return () => {
       isMounted = false
-      // cleanup context on unmount
-      if (audioCtxRef.current) {
-        audioCtxRef.current.close()
-        audioCtxRef.current = null
-      }
     }
   }, [audioUrl, toast])
+
+  // Improved cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log('[Cleanup] Component unmounting, cleaning up audio resources')
+      
+      // Stop any playing audio
+      stopCurrentSource()
+      
+      // Clear any timeouts
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+      
+      // Cancel any animation frames
+      cancelRaf()
+      
+      // Close and cleanup AudioContext
+      if (audioCtxRef.current) {
+        try {
+          audioCtxRef.current.close()
+          console.log('[Cleanup] AudioContext closed')
+        } catch (error) {
+          console.error('[Cleanup] Error closing AudioContext:', error)
+        }
+        audioCtxRef.current = null
+      }
+      
+      // Clear references
+      audioBufferRef.current = null
+      sourceRef.current = null
+    }
+  }, [])
 
   const handleEnded = () => {
     const currentSelection = selectionRef.current // get fresh selection from ref
@@ -828,44 +981,128 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
     }
   }
 
-  const playSelection = (sel: { start: number; end: number; text: string }) => {
+  const playSelection = async (sel: { start: number; end: number; text: string }) => {
     console.log('[playSelection] called with selection:', sel)
-    if (!audioCtxRef.current || !audioBufferRef.current) return
+    
     stopCurrentSource()
+    setAudioError(null)
     
-    const ctx = audioCtxRef.current
-    if (ctx.state === "suspended") ctx.resume()
+    if (!audioArrayBuffer) {
+      handlePlayError(new Error("No audio data available"))
+      return
+    }
     
-    const source = ctx.createBufferSource()
-    source.buffer = audioBufferRef.current
-    source.playbackRate.value = 1
-    source.connect(ctx.destination)
+    try {
+      const ctx = await getOrCreateAudioContext()
+      if (!ctx) return
+      
+      // Decode audio if not already decoded
+      if (!audioBufferRef.current && audioArrayBuffer) {
+        setIsDecoding(true)
+        const decodedBuffer = await decodeAudioBuffer(ctx, audioArrayBuffer)
+        setIsDecoding(false)
+        if (!decodedBuffer) {
+          handlePlayError(new Error("Failed to decode audio"))
+          return
+        }
+        audioBufferRef.current = decodedBuffer
+        setDuration(decodedBuffer.duration)
+      }
+      
+      if (!audioBufferRef.current) {
+        handlePlayError(new Error("No audio buffer available"))
+        return
+      }
+      
+      const source = ctx.createBufferSource()
+      source.buffer = audioBufferRef.current
+      source.playbackRate.value = 1
+      source.connect(ctx.destination)
 
-    const offset = msToSeconds(sel.start)
-    const durationSec = msToSeconds(sel.end - sel.start)
-    console.log('[playSelection] playing from', offset, 'for', durationSec, 'seconds')
+      const offset = msToSeconds(sel.start)
+      const durationSec = msToSeconds(sel.end - sel.start)
+      console.log('[playSelection] playing from', offset, 'for', durationSec, 'seconds')
 
-    source.start(0, offset, durationSec)
-    startTimestampRef.current = ctx.currentTime
-    selectionOffsetRef.current = offset
-    sourceDurationRef.current = durationSec
-    const thisSource = source
-    source.onended = () => {
-      console.log('[playSelection] source ended naturally, is current?', sourceRef.current === thisSource)
-      if (sourceRef.current === thisSource) {
-        handleEnded()
+      source.start(0, offset, durationSec)
+      startTimestampRef.current = ctx.currentTime
+      selectionOffsetRef.current = offset
+      sourceDurationRef.current = durationSec
+      const thisSource = source
+      source.onended = () => {
+        console.log('[playSelection] source ended naturally, is current?', sourceRef.current === thisSource)
+        if (sourceRef.current === thisSource) {
+          handleEnded()
+        }
+      }
+
+      sourceRef.current = source
+      setIsPlaying(true)
+      startRaf()
+      
+      console.log('[playSelection] complete')
+    } catch (error) {
+      handlePlayError(error)
+    }
+  }
+
+  // Retry loading audio
+  const retryLoadAudio = async () => {
+    setAudioError(null)
+    setAudioLoaded(false)
+    setAudioArrayBuffer(null)
+    
+    // Trigger reload by changing audioUrl dependency
+    const loadAudio = async () => {
+      try {
+        const response = await fetch(audioUrl, { mode: "cors" })
+        if (!response.ok) {
+          throw new Error(`Failed to load audio: ${response.status} ${response.statusText}`)
+        }
+        const arrayBuffer = await response.arrayBuffer()
+        setAudioArrayBuffer(arrayBuffer)
+        setAudioLoaded(true)
+        setAudioError(null)
+        
+        toast({
+          title: "Success",
+          description: "Audio loaded successfully",
+        })
+      } catch (err) {
+        console.error("Audio reload error", err)
+        const errorMessage = err instanceof Error ? err.message : "Failed to load audio file"
+        setAudioError(errorMessage)
+        toast({
+          title: "Audio Error", 
+          description: errorMessage,
+          variant: "destructive",
+        })
       }
     }
-
-    sourceRef.current = source
-    setIsPlaying(true)
-    startRaf()
-    
-    console.log('[playSelection] complete')
+    loadAudio()
   }
 
   return (
     <div className="grid gap-6">
+      {/* Error alert */}
+      {audioError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Audio Error</AlertTitle>
+          <AlertDescription className="flex items-center justify-between">
+            <span>{audioError}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={retryLoadAudio}
+              className="ml-4"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Word-by-word transcript display - Removed title and icon */}
       <Card className="shadow-sm border-gray-200">
         <CardContent className="p-0">
@@ -957,12 +1194,17 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
               <Button
                 size="lg"
                 onClick={togglePlayPause}
-                disabled={!audioLoaded || !selection}
+                disabled={!audioLoaded || !selection || !!audioError || isDecoding}
                 className={`min-w-[160px] transition-all ${
                   isPlaying || isPausing ? "bg-orange-400 hover:bg-orange-500" : "bg-orange-500 hover:bg-orange-600"
                 }`}
               >
-                {isPlaying || isPausing ? (
+                {isDecoding ? (
+                  <>
+                    <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent mr-2" />
+                    Loading...
+                  </>
+                ) : isPlaying || isPausing ? (
                   <>
                     <Pause className="h-5 w-5 mr-2" />
                     Pause Selection
@@ -987,7 +1229,7 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
               variant="outline"
               size="lg"
               onClick={handleDownload}
-              disabled={!selection || !audioLoaded}
+              disabled={!selection || !audioLoaded || !!audioError}
               className="min-w-[160px] text-gray-700 border-gray-300 hover:bg-gray-50"
             >
               <Download className="h-5 w-5 mr-2" />
@@ -997,7 +1239,7 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
         </CardContent>
       </Card>
 
-      {!audioLoaded && (
+      {!audioLoaded && !audioError && (
         <Card className="bg-gray-50 border-gray-200 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center">

@@ -99,10 +99,10 @@ export default function UploadPage() {
 
     try {
       // Show initial toast
-      toast({
-        title: "Processing File",
+    toast({
+      title: "Processing File",
         description: "Uploading and transcribing your file...",
-      })
+    })
 
       // Create form data
       const formData = new FormData()

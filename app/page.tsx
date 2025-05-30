@@ -17,8 +17,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   
   // Demo data URLs
-  const demoAudioUrl = "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/E01%20-%20Rebirth_trimmed-HFdPKfdDrlFlMm6IxPwBczekrmsBqT.mp3"
-  const demoTranscriptUrl = "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/E01%20-%20Rebirth_trimmed_transcript-InMo8yNUHmrOP7ikQrdR5aTomOi7Tm.json"
+  const demoAudioUrl = "/14 Minutes of Nate Bargatze  Netflix Is a Joke.mp3"
+  const demoTranscriptUrl = "/14 Minutes of Nate Bargatze  Netflix Is a Joke_transcript.json"
   
   const [demoTranscriptData, setDemoTranscriptData] = useState<any>(null)
   const [isDemoLoading, setIsDemoLoading] = useState(true)
@@ -40,26 +40,26 @@ export default function Home() {
   useEffect(() => {
     if (!transcriptData) {
       const loadDemoData = async () => {
-        try {
+      try {
           setIsDemoLoading(true)
           const response = await fetch(demoTranscriptUrl)
-          if (!response.ok) {
+        if (!response.ok) {
             throw new Error(`Failed to fetch demo transcript: ${response.status}`)
-          }
-          const data = await response.json()
+        }
+        const data = await response.json()
           setDemoTranscriptData(data)
-        } catch (err) {
+      } catch (err) {
           console.error("Error loading demo transcript:", err)
           setError("Failed to load demo transcript")
-          toast({
+        toast({
             title: "Error Loading Demo",
             description: "There was a problem loading the demo transcript.",
-            variant: "destructive",
-          })
+          variant: "destructive",
+        })
         } finally {
           setIsDemoLoading(false)
-        }
       }
+    }
       loadDemoData()
     }
   }, [transcriptData, toast])
@@ -71,17 +71,17 @@ export default function Home() {
 
   // Show loading state
   if (!transcriptData && isDemoLoading) {
-    return (
-      <main className="container mx-auto py-8 px-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Transcript-based Chorusing</h1>
-          <Link href="/upload">
-            <Button variant="outline" className="text-gray-700 border-gray-300 hover:bg-gray-50">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload New File
-            </Button>
-          </Link>
-        </div>
+  return (
+    <main className="container mx-auto py-8 px-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Transcript-based Chorusing</h1>
+        <Link href="/upload">
+          <Button variant="outline" className="text-gray-700 border-gray-300 hover:bg-gray-50">
+            <Upload className="h-4 w-4 mr-2" />
+            Upload New File
+          </Button>
+        </Link>
+      </div>
         <Card className="border-gray-200 shadow-sm">
           <CardContent className="flex items-center justify-center py-8">
             <div className="text-center">
@@ -114,7 +114,7 @@ export default function Home() {
               <Link href="/upload">
                 <Button className="bg-orange-500 hover:bg-orange-600">
                   Upload a File
-                </Button>
+              </Button>
               </Link>
             </div>
           </CardContent>
@@ -136,7 +136,7 @@ export default function Home() {
           )}
           {!isUsingUploadedData && (
             <p className="text-sm text-gray-600 mt-1">
-              Demo: E01 - Rebirth (trimmed)
+              Demo: 14 Minutes of Nate Bargatze
             </p>
           )}
         </div>
