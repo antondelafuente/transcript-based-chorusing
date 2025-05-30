@@ -798,7 +798,7 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
           data-word-id={wordIndex}
           data-start={word.start}
           data-end={word.end}
-          className={`cursor-pointer hover:bg-gray-50 rounded transition-colors ${getWordClass(
+          className={`cursor-pointer hover:bg-gray-50 active:bg-gray-100 rounded px-0.5 py-0.5 transition-colors ${getWordClass(
             word,
             wordIndex,
           )}`}
@@ -1043,19 +1043,19 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4 sm:gap-6">
       {/* Error alert */}
       {audioError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Audio Error</AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            <span>{audioError}</span>
+          <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <span className="text-sm">{audioError}</span>
             <Button
               variant="outline"
               size="sm"
               onClick={retryLoadAudio}
-              className="ml-4"
+              className="w-full sm:w-auto"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
@@ -1068,19 +1068,19 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
       <Card className="shadow-sm border-gray-200">
         <CardContent className="p-0">
           <div
-            className={`p-5 max-h-[400px] overflow-y-auto ${typography.lineHeight} ${typography.fontClass} text-gray-700`}
+            className={`p-3 sm:p-5 max-h-[300px] sm:max-h-[400px] overflow-y-auto ${typography.lineHeight} ${typography.fontClass} text-gray-700`}
             ref={transcriptRef}
             onMouseUp={handleWordSelection}
           >
             {renderTranscriptWithSpeakerBreaks()}
           </div>
           {/* Time adjustment controls */}
-          <div className="border-t border-gray-200 p-4 bg-gray-50/50">
-            <div className="flex flex-wrap items-center gap-4 text-sm">
+          <div className="border-t border-gray-200 p-3 sm:p-4 bg-gray-50/50">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 text-xs sm:text-sm">
               {/* Start time controls */}
               <div className="flex items-center gap-1.5">
                 <span className="font-medium text-gray-700 min-w-[35px]">Start:</span>
-                <span className="font-mono text-gray-800 min-w-[45px] text-right">
+                <span className="font-mono text-gray-800 min-w-[40px] sm:min-w-[45px] text-right">
                   {selection ? formatTime(msToSeconds(selection.start)) : "0s"}
                 </span>
                 <div className="flex gap-0.5">
@@ -1089,18 +1089,18 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
                     size="sm"
                     onClick={() => adjustStartTime(-0.1)}
                     disabled={!selection || msToSeconds(selection.start) <= 0}
-                    className="h-7 w-7 p-0 text-gray-600 border-gray-400 hover:text-gray-800 disabled:opacity-50"
+                    className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-gray-600 border-gray-400 hover:text-gray-800 disabled:opacity-50"
                   >
-                    <Minus className="h-2.5 w-2.5" />
+                    <Minus className="h-3 w-3 sm:h-2.5 sm:w-2.5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => adjustStartTime(0.1)}
                     disabled={!selection || msToSeconds(selection.start) >= msToSeconds(selection.end) - 0.1}
-                    className="h-7 w-7 p-0 text-gray-600 border-gray-400 hover:text-gray-800 disabled:opacity-50"
+                    className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-gray-600 border-gray-400 hover:text-gray-800 disabled:opacity-50"
                   >
-                    <Plus className="h-2.5 w-2.5" />
+                    <Plus className="h-3 w-3 sm:h-2.5 sm:w-2.5" />
                   </Button>
                 </div>
               </div>
@@ -1108,7 +1108,7 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
               {/* End time controls */}
               <div className="flex items-center gap-1.5">
                 <span className="font-medium text-gray-700 min-w-[30px]">End:</span>
-                <span className="font-mono text-gray-800 min-w-[45px] text-right">
+                <span className="font-mono text-gray-800 min-w-[40px] sm:min-w-[45px] text-right">
                   {selection ? formatTime(msToSeconds(selection.end)) : "0s"}
                 </span>
                 <div className="flex gap-0.5">
@@ -1117,24 +1117,24 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
                     size="sm"
                     onClick={() => adjustEndTime(-0.1)}
                     disabled={!selection || msToSeconds(selection.end) <= msToSeconds(selection.start) + 0.1}
-                    className="h-7 w-7 p-0 text-gray-600 border-gray-400 hover:text-gray-800 disabled:opacity-50"
+                    className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-gray-600 border-gray-400 hover:text-gray-800 disabled:opacity-50"
                   >
-                    <Minus className="h-2.5 w-2.5" />
+                    <Minus className="h-3 w-3 sm:h-2.5 sm:w-2.5" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => adjustEndTime(0.1)}
                     disabled={!selection || msToSeconds(selection.end) >= duration}
-                    className="h-7 w-7 p-0 text-gray-600 border-gray-400 hover:text-gray-800 disabled:opacity-50"
+                    className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-gray-600 border-gray-400 hover:text-gray-800 disabled:opacity-50"
                   >
-                    <Plus className="h-2.5 w-2.5" />
+                    <Plus className="h-3 w-3 sm:h-2.5 sm:w-2.5" />
                   </Button>
                 </div>
               </div>
 
               {/* Duration display */}
-              <div className="flex items-center gap-1.5 ml-auto">
+              <div className="flex items-center gap-1.5 sm:ml-auto">
                 <span className="text-gray-600">Duration:</span>
                 <span className="font-mono text-gray-800">
                   {selection ? formatTime(msToSeconds(selection.end) - msToSeconds(selection.start)) : "0s"}
@@ -1147,16 +1147,16 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
 
       {/* Audio controls - Redesigned layout with requested changes */}
       <Card className="shadow-sm border-gray-200">
-        <CardContent className="p-5">
-          <div className="flex flex-col sm:flex-row items-start gap-6">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex flex-col gap-3">
             {/* Primary controls group */}
-            <div className="flex flex-col sm:flex-row items-center gap-6 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-3 w-full">
               {/* Play/Pause button */}
               <Button
                 size="lg"
                 onClick={togglePlayPause}
                 disabled={!audioLoaded || !selection || !!audioError || isDecoding}
-                className={`min-w-[160px] transition-all ${
+                className={`w-full sm:w-auto sm:min-w-[160px] transition-all ${
                   isPlaying || isPausing ? "bg-orange-400 hover:bg-orange-500" : "bg-orange-500 hover:bg-orange-600"
                 }`}
               >
@@ -1168,48 +1168,42 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
                 ) : isPlaying || isPausing ? (
                   <>
                     <Pause className="h-5 w-5 mr-2" />
-                    Pause Selection
+                    Pause
                   </>
                 ) : (
                   <>
                     <Play className="h-5 w-5 mr-2" />
-                    Play Selection
+                    Play
                   </>
                 )}
               </Button>
 
-              {/* Single speed button that cycles through speeds */}
-              {/* Speed control removed for simplicity */}
+              {/* Download button */}
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleDownload}
+                disabled={!selection || !audioLoaded || !!audioError}
+                className="w-full sm:w-auto sm:min-w-[160px] text-gray-700 border-gray-300 hover:bg-gray-50"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                Download
+              </Button>
             </div>
-
-            {/* Spacer for flex layout */}
-            <div className="flex-grow"></div>
-
-            {/* Secondary controls - Download button now same size as Play button */}
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleDownload}
-              disabled={!selection || !audioLoaded || !!audioError}
-              className="min-w-[160px] text-gray-700 border-gray-300 hover:bg-gray-50"
-            >
-              <Download className="h-5 w-5 mr-2" />
-              Download Selection
-            </Button>
           </div>
         </CardContent>
       </Card>
 
       {!audioLoaded && !audioError && (
         <Card className="bg-gray-50 border-gray-200 shadow-sm">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center">
-              <div className="mr-4">
-                <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-gray-400 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+              <div className="mr-3 sm:mr-4">
+                <div className="inline-block h-5 w-5 sm:h-6 sm:w-6 animate-spin rounded-full border-4 border-solid border-gray-400 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-800">Loading Audio</h3>
-                <p className="text-sm text-gray-600">Please wait while the audio file is loading...</p>
+                <h3 className="font-medium text-gray-800 text-sm sm:text-base">Loading Audio</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Please wait while the audio file is loading...</p>
               </div>
             </div>
           </CardContent>

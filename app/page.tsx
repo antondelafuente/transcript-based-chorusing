@@ -72,11 +72,11 @@ export default function Home() {
   // Show loading state
   if (!transcriptData && isDemoLoading) {
   return (
-    <main className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Transcript-based Chorusing</h1>
+    <main className="max-w-3xl mx-auto py-4 sm:py-8 px-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Transcript-based Chorusing</h1>
         <Link href="/upload">
-          <Button variant="outline" className="text-gray-700 border-gray-300 hover:bg-gray-50">
+          <Button variant="outline" className="w-full sm:w-auto text-gray-700 border-gray-300 hover:bg-gray-50">
             <Upload className="h-4 w-4 mr-2" />
             Upload New File
           </Button>
@@ -97,11 +97,11 @@ export default function Home() {
   // Show error state
   if (error) {
     return (
-      <main className="container mx-auto py-8 px-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Transcript-based Chorusing</h1>
+      <main className="max-w-3xl mx-auto py-4 sm:py-8 px-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Transcript-based Chorusing</h1>
           <Link href="/upload">
-            <Button variant="outline" className="text-gray-700 border-gray-300 hover:bg-gray-50">
+            <Button variant="outline" className="w-full sm:w-auto text-gray-700 border-gray-300 hover:bg-gray-50">
               <Upload className="h-4 w-4 mr-2" />
               Upload New File
             </Button>
@@ -125,25 +125,25 @@ export default function Home() {
 
   // Show main content
   return (
-    <main className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-6">
+    <main className="max-w-3xl mx-auto py-4 sm:py-8 px-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Transcript-based Chorusing</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Transcript-based Chorusing</h1>
           {isUsingUploadedData && audioFile && (
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               Using: {audioFile.name}
             </p>
           )}
           {!isUsingUploadedData && (
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               Demo: 14 Minutes of Nate Bargatze
             </p>
           )}
         </div>
         <Link href="/upload">
-          <Button variant="outline" className="text-gray-700 border-gray-300 hover:bg-gray-50">
+          <Button variant="outline" className="w-full sm:w-auto text-gray-700 border-gray-300 hover:bg-gray-50">
             <Upload className="h-4 w-4 mr-2" />
-            Upload New File
+            <span className="sm:inline">Upload New File</span>
           </Button>
         </Link>
       </div>

@@ -146,14 +146,14 @@ export default function UploadPage() {
   }
 
   return (
-    <main className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-8 text-gray-800">Transcript-based Chorusing</h1>
+    <main className="max-w-2xl mx-auto py-4 sm:py-8 px-4">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-gray-800">Transcript-based Chorusing</h1>
 
       {/* File Upload Area */}
       <Card className="border-gray-200 shadow-sm">
         <CardContent className="p-0">
           <div
-            className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-lg transition-colors ${
+            className={`flex flex-col items-center justify-center p-6 sm:p-10 border-2 border-dashed rounded-lg transition-colors ${
               isDragging
                 ? "border-orange-400 bg-orange-50"
                 : selectedFile
@@ -168,13 +168,20 @@ export default function UploadPage() {
             {!selectedFile ? (
               <>
                 <div className="mb-4">
-                  <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-gray-500" />
+                  <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gray-100 flex items-center justify-center">
+                    <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-gray-500" />
                   </div>
                 </div>
-                <h2 className="text-xl font-medium text-gray-700 mb-2">Drag and drop your file here</h2>
-                <p className="text-gray-500 mb-4">or click to browse your files</p>
-                <Button onClick={triggerFileInput} className="bg-orange-500 hover:bg-orange-600">
+                <h2 className="text-lg sm:text-xl font-medium text-gray-700 mb-2 text-center">
+                  Drag and drop your file here
+                </h2>
+                <p className="text-sm sm:text-base text-gray-500 mb-4 text-center">
+                  or click to browse your files
+                </p>
+                <Button 
+                  onClick={triggerFileInput} 
+                  className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
+                >
                   <FileAudio className="h-5 w-5 mr-2" />
                   Select Audio or Video File
                 </Button>
@@ -188,12 +195,14 @@ export default function UploadPage() {
               </>
             ) : (
               <div className="w-full">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <FileAudio className="h-6 w-6 text-gray-600 mr-2" />
-                    <div>
-                      <h3 className="font-medium text-gray-800">{selectedFile.name}</h3>
-                      <p className="text-sm text-gray-500">
+                <div className="flex items-start justify-between mb-4 gap-2">
+                  <div className="flex items-center min-w-0">
+                    <FileAudio className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600 mr-2 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <h3 className="font-medium text-gray-800 text-sm sm:text-base truncate">
+                        {selectedFile.name}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-500">
                         {(selectedFile.size / 1024 / 1024).toFixed(2)} MB • {selectedFile.type}
                       </p>
                     </div>
@@ -202,7 +211,7 @@ export default function UploadPage() {
                     variant="ghost"
                     size="sm"
                     onClick={clearSelectedFile}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-gray-500 hover:text-gray-700 flex-shrink-0"
                     disabled={isProcessing}
                   >
                     <X className="h-4 w-4" />
