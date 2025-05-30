@@ -136,7 +136,7 @@ export default function Home() {
           )}
           {!isUsingUploadedData && (
             <p className="text-xs sm:text-sm text-gray-600 mt-1">
-              Demo: 14 Minutes of Nate Bargatze
+              Demo: SNL - Washington's Dream
             </p>
           )}
         </div>

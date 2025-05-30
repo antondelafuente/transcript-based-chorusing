@@ -1076,7 +1076,7 @@ export function TranscriptViewer({ transcriptData, audioUrl }: TranscriptViewerP
           </div>
           {/* Time adjustment controls */}
           <div className="border-t border-gray-200 p-3 sm:p-4 bg-gray-50/50">
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 text-xs sm:text-sm">
+            <div className="flex flex-row gap-2 sm:gap-4 text-xs sm:text-sm">
               {/* Start time controls */}
               <div className="flex items-center gap-1.5">
                 <span className="font-medium text-gray-700 min-w-[35px]">Start:</span>
