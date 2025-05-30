@@ -129,16 +129,6 @@ export default function Home() {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Transcript-based Chorusing</h1>
-          {isUsingUploadedData && audioFile && (
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">
-              Using: {audioFile.name}
-            </p>
-          )}
-          {!isUsingUploadedData && (
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">
-              Demo: Louis C.K. – "Of Course… But Maybe"
-            </p>
-          )}
         </div>
         <Link href="/upload">
           <Button variant="outline" className="w-full sm:w-auto text-gray-700 border-gray-300 hover:bg-gray-50">
