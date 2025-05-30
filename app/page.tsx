@@ -136,7 +136,7 @@ export default function Home() {
           )}
           {!isUsingUploadedData && (
             <p className="text-xs sm:text-sm text-gray-600 mt-1">
-              Demo: SNL - Washington's Dream
+              Demo: Louis C.K. – "Of Course… But Maybe"
             </p>
           )}
         </div>
